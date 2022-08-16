@@ -49,24 +49,23 @@ const size_t Board::GetNumPieces() const
 void Board::Solve(const PieceId InPieceId, const uint16_t InGoalCol, const uint16_t InGoalRow) const
 {
     std::unordered_set<size_t> SeenConfigs;
-    std::queue<std::shared_ptr<Config>> ConfigsQueue;
-
-    {
-        const std::shared_ptr<Config> InitialConfig = GetInitialConfig();
-        ConfigsQueue.push(InitialConfig);
-    }
+    std::queue<std::shared_ptr<Config>> ConfigsQueue({ GetInitialConfig() });
 
     uint32_t ConfigsSearched = 0;
+
+    std::vector<std::shared_ptr<Config>> NewMoves;
+    NewMoves.reserve(GetNumPieces() * 2); // Each piece can potentially move forward or backward
+
     while (ConfigsQueue.size() > 0)
     {
-        const std::shared_ptr<Config> SomeConfig = ConfigsQueue.front();
+        const std::shared_ptr<Config>& SomeConfig = ConfigsQueue.front();
 
         //SomeConfig->Dump();
 
         // Check if this is a winning state
         if (SomeConfig->DoesPieceOverlapPos(InPieceId, InGoalCol, InGoalRow))
         {
-            SomeConfig->DumpTrace();
+            SomeConfig->DumpPieceSteps();
 
             printf("Searched %d configurations.\n", ConfigsSearched);
             printf("Found winning config!\n");
@@ -74,8 +73,11 @@ void Board::Solve(const PieceId InPieceId, const uint16_t InGoalCol, const uint1
             return;
         }
 
-        std::vector<std::shared_ptr<Config>> NewMoves = Config::GenerateMoves(SomeConfig);
-        for (const std::shared_ptr<Config> NewMove : NewMoves)
+        NewMoves.clear();
+        Config::GenerateMoves(SomeConfig, NewMoves);
+
+        // Only add each new configuration if the configuration is unique
+        for (const std::shared_ptr<Config>& NewMove : NewMoves)
         {
             if (SeenConfigs.count(NewMove->Hash()) == 0)
             {
@@ -89,6 +91,5 @@ void Board::Solve(const PieceId InPieceId, const uint16_t InGoalCol, const uint1
     }
 
     printf("Searched %d configurations.\n", ConfigsSearched);
-
     printf("Could not find winning config!\n");
 }

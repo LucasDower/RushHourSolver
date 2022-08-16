@@ -6,6 +6,7 @@
 #include <string>
 #include <sstream>
 #include <functional>
+#include <stack>
 
 Config::Config(const Board* const InBoard, const std::shared_ptr<Config> InPrevConfig)
     : OwnerBoard(InBoard)
@@ -87,11 +88,8 @@ bool Config::IsEmptyAt(const uint16_t InCol, const uint16_t InRow) const
     return GetPieceAt(InCol, InRow) == nullptr;
 }
 
-const std::vector<std::shared_ptr<Config>> Config::GenerateMovesForPiece(std::shared_ptr<Config> InConfig, const PieceId InPieceId)
+void Config::GenerateMovesForPiece(std::shared_ptr<Config> InConfig, const PieceId InPieceId, std::vector<std::shared_ptr<Config>>& OutQueue)
 {
-    std::vector<std::shared_ptr<Config>> Moves;
-    Moves.reserve(2);
-
     const Piece& SomePiece = InConfig->OwnerBoard->GetPiece(InPieceId);
 
     {
@@ -112,7 +110,7 @@ const std::vector<std::shared_ptr<Config>> Config::GenerateMovesForPiece(std::sh
                 Config NewConfig = *InConfig.get();
                 NewConfig.MovePieceBackward(InPieceId);
                 NewConfig.PrevConfig = InConfig;
-                Moves.push_back(std::make_shared<Config>(NewConfig));
+                OutQueue.push_back(std::make_shared<Config>(NewConfig));
             }
         }
     }
@@ -134,26 +132,18 @@ const std::vector<std::shared_ptr<Config>> Config::GenerateMovesForPiece(std::sh
                 Config NewConfig = *InConfig.get();
                 NewConfig.MovePieceForward(InPieceId);
                 NewConfig.PrevConfig = InConfig;
-                Moves.push_back(std::make_shared<Config>(NewConfig));
+                OutQueue.push_back(std::make_shared<Config>(NewConfig));
             }
         }
     }
-
-    return Moves;
 }
 
-const std::vector<std::shared_ptr<Config>> Config::GenerateMoves(std::shared_ptr<Config> InConfig)
+void Config::GenerateMoves(std::shared_ptr<Config> InConfig, std::vector<std::shared_ptr<Config>>& OutQueue)
 {
-    std::vector<std::shared_ptr<Config>> NewConfigs;
     for (size_t PieceId = 0; PieceId < InConfig->OwnerBoard->GetNumPieces(); ++PieceId)
     {
-        const std::vector<std::shared_ptr<Config>> NewPieceConfigs = GenerateMovesForPiece(InConfig, PieceId);
-        for (const std::shared_ptr<Config>& Tmp : NewPieceConfigs)
-        {
-            NewConfigs.push_back(Tmp);
-        }
+        GenerateMovesForPiece(InConfig, PieceId, OutQueue);
     }
-    return NewConfigs;
 }
 
 bool Config::DoesPieceOverlapPos(const PieceId InPieceId, const uint16_t InCol, const uint16_t InRow) const
@@ -200,20 +190,45 @@ void Config::Dump() const
     printf("\n");
 }
 
-void Config::DumpTrace() const
+void Config::DumpBoardSteps() const
 {
-    Dump();
-    size_t MovesCount = 1;
+    const std::vector<std::shared_ptr<Config>>& Steps = GetSteps();
 
-    std::shared_ptr<Config> NextConfig = PrevConfig;
-    while (NextConfig)
+    for (const auto& Step : Steps)
     {
-        NextConfig->Dump();
-        NextConfig = NextConfig->PrevConfig;
-        ++MovesCount;
+        Step->Dump();
     }
+    Dump();
+}
 
-    printf("Took %d moves.\n", MovesCount);
+void Config::DumpPieceSteps() const
+{
+    const std::vector<std::shared_ptr<Config>>& Steps = GetSteps();
+
+    for (size_t Index = 0; Index < Steps.size() - 1; ++Index)
+    {
+        const std::shared_ptr<Config>& PrevStep = Steps[Index];
+        const std::shared_ptr<Config>& NextStep = Steps[Index + 1];
+
+        for (PieceId PieceIndex = 0; PieceIndex < OwnerBoard->GetNumPieces(); ++PieceIndex)
+        {
+            const Pos& PrevPos = PrevStep->PiecePositions[PieceIndex];
+            const Pos& NextPos = NextStep->PiecePositions[PieceIndex];
+
+            if (PrevPos != NextPos)
+            {
+                const Piece& ThisPiece = OwnerBoard->GetPiece(PieceIndex);
+                const bool PieceMovedForward = ThisPiece.GetIsHorizontal() ? NextPos.Col > PrevPos.Col : NextPos.Row > PrevPos.Row;
+
+                printf(
+                    "Move %c %s\n",
+                    ThisPiece.GetDisplayChar(),
+                    ThisPiece.GetIsHorizontal() ? (PieceMovedForward ? "right" : "left") : (PieceMovedForward ? "down" : "up")
+                );
+                break;
+            }
+        }
+    }
 }
 
 size_t Config::Hash() const
@@ -231,4 +246,18 @@ size_t Config::Hash() const
     std::string s = ss.str();
 
     return std::hash<std::string>{}(s);
+}
+
+std::vector<std::shared_ptr<Config>> Config::GetSteps() const
+{
+    std::vector<std::shared_ptr<Config>> Steps;
+    {
+        std::shared_ptr<Config> NextConfig = PrevConfig;
+        while (NextConfig)
+        {
+            Steps.insert(Steps.begin(), NextConfig);
+            NextConfig = NextConfig->PrevConfig;
+        }
+    }
+    return Steps;
 }

@@ -11,4 +11,9 @@ public:
 
     uint16_t Col;
     uint16_t Row;
+
+    bool operator==(const Pos& Other) const
+    {
+        return Col == Other.Col && Row == Other.Row;
+    }
 };
