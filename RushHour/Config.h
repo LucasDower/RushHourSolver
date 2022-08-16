@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <stdint.h>
 
 #include "Util.h"
 
@@ -41,4 +42,6 @@ public:
 
     /** The configuration before this configuration */
     std::shared_ptr<Config> PrevConfig;
+
+    uint8_t HashShiftLength;
 };

@@ -3,8 +3,6 @@
 #include "Board.h"
 #include "Piece.h"
 #include <stdio.h>
-#include <string>
-#include <sstream>
 #include <functional>
 #include <stack>
 
@@ -12,6 +10,7 @@ Config::Config(const Board* const InBoard, const std::shared_ptr<Config> InPrevC
     : OwnerBoard(InBoard)
     , PrevConfig(InPrevConfig)
 {
+    HashShiftLength = (uint16_t) std::log2(NextPowerOf2(OwnerBoard->GetWidth() * OwnerBoard->GetHeight()));
 }
 
 void Config::MovePieceForward(const PieceId InPieceId)
@@ -233,19 +232,16 @@ void Config::DumpPieceSteps() const
 
 size_t Config::Hash() const
 {
-    const size_t NumPieces = OwnerBoard->GetPieces().size();
-    uint64_t HashValue = 0;
-
-    std::stringstream ss;
-    
-    for (const Pos& SomePos : PiecePositions)
+    size_t MatrixIndex = 0;
+    for (PieceId PieceIndex = 0; PieceIndex < OwnerBoard->GetNumPieces(); ++PieceIndex)
     {
-        ss << SomePos.Col << SomePos.Row;
+        const Pos& PiecePos = PiecePositions[PieceIndex];
+        const size_t PosIndex = PiecePos.Row * OwnerBoard->GetWidth() + PiecePos.Col;
+
+        MatrixIndex ^= (MatrixIndex << HashShiftLength) + PosIndex;
     }
 
-    std::string s = ss.str();
-
-    return std::hash<std::string>{}(s);
+    return MatrixIndex; 
 }
 
 std::vector<std::shared_ptr<Config>> Config::GetSteps() const
