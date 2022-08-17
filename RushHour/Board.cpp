@@ -60,15 +60,18 @@ void Board::Solve(const PieceId InPieceId, const uint16_t InGoalCol, const uint1
     {
         const std::shared_ptr<Config>& SomeConfig = ConfigsQueue.front();
 
-        //SomeConfig->Dump();
-
         // Check if this is a winning state
         if (SomeConfig->DoesPieceOverlapPos(InPieceId, InGoalCol, InGoalRow))
         {
-            SomeConfig->DumpPieceSteps();
+            printf("Steps to solve:\n");
+            SomeConfig->DumpBoardSteps();
 
+            printf("Paste this sequence in /Visualisation/moves.txt to animate:\n");
+            SomeConfig->DumpPieceSteps(false);
+
+            printf("\nFound winning config!\n");
+            printf("Solved in %llu step(s)\n", SomeConfig->GetSteps().size());
             printf("Searched %d configurations.\n", ConfigsSearched);
-            printf("Found winning config!\n");
 
             return;
         }

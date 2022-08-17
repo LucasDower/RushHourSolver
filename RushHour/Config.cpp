@@ -200,15 +200,10 @@ void Config::DumpBoardSteps() const
     Dump();
 }
 
-void Config::DumpPieceSteps() const
+void Config::DumpPieceSteps(const bool HumanReadable) const
 {
-    const std::vector<std::shared_ptr<Config>>& Steps = GetSteps();
-
-    for (size_t Index = 0; Index < Steps.size() - 1; ++Index)
+    const auto DumpStep = [this, HumanReadable](const std::shared_ptr<Config>& PrevStep, const std::shared_ptr<Config>& NextStep)
     {
-        const std::shared_ptr<Config>& PrevStep = Steps[Index];
-        const std::shared_ptr<Config>& NextStep = Steps[Index + 1];
-
         for (PieceId PieceIndex = 0; PieceIndex < OwnerBoard->GetNumPieces(); ++PieceIndex)
         {
             const Pos& PrevPos = PrevStep->PiecePositions[PieceIndex];
@@ -219,15 +214,33 @@ void Config::DumpPieceSteps() const
                 const Piece& ThisPiece = OwnerBoard->GetPiece(PieceIndex);
                 const bool PieceMovedForward = ThisPiece.GetIsHorizontal() ? NextPos.Col > PrevPos.Col : NextPos.Row > PrevPos.Row;
 
-                printf(
-                    "Move %c %s\n",
-                    ThisPiece.GetDisplayChar(),
-                    ThisPiece.GetIsHorizontal() ? (PieceMovedForward ? "right" : "left") : (PieceMovedForward ? "down" : "up")
-                );
+                if (HumanReadable)
+                {
+                    printf(
+                        "Move %c %s\n",
+                        ThisPiece.GetDisplayChar(),
+                        ThisPiece.GetIsHorizontal() ? (PieceMovedForward ? "right" : "left") : (PieceMovedForward ? "down" : "up")
+                    );
+                }
+                else
+                {
+                    printf("%llu %d\n", PieceIndex, PieceMovedForward ? 1 : 0);
+                }
                 break;
             }
         }
+    };
+
+    const std::vector<std::shared_ptr<Config>>& Steps = GetSteps();
+
+    for (size_t Index = 0; Index < Steps.size() - 1; ++Index)
+    {
+        const std::shared_ptr<Config>& PrevStep = Steps[Index];
+        const std::shared_ptr<Config>& NextStep = Steps[Index + 1];
+
+        DumpStep(PrevStep, NextStep);
     }
+    DumpStep(Steps.back(), std::make_shared<Config>(*this));
 }
 
 size_t Config::Hash() const

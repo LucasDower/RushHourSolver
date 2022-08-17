@@ -31,7 +31,7 @@ public:
     void Dump() const;
     std::vector<std::shared_ptr<Config>> GetSteps() const;
     void DumpBoardSteps() const;
-    void DumpPieceSteps() const;
+    void DumpPieceSteps(const bool HumanReadable) const;
     size_t Hash() const;
 
     /** The list of each piece's location indexed on the PieceId */
