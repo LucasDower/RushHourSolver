@@ -9,8 +9,6 @@ int main()
 {
     Board GameBoard(6, 6);
 
-    GameBoard.AddPiece(HorizontalPiece(2, 'A'), { 0, 2 });
-    /*
     GameBoard.AddPiece(HorizontalPiece(2, 'B'), { 1, 0 });
     GameBoard.AddPiece(HorizontalPiece(2, 'A'), { 3, 2 });
     GameBoard.AddPiece(HorizontalPiece(3, 'C'), { 0, 3 });
@@ -25,11 +23,10 @@ int main()
     GameBoard.AddPiece(VerticalPiece(2, 'K'), { 3, 3 });
     GameBoard.AddPiece(VerticalPiece(2, 'J'), { 2, 4 });
     GameBoard.AddPiece(VerticalPiece(3, 'M'), { 5, 1 });
-    */
 
     GameBoard.GetInitialConfig()->Dump();
     const auto StartTime = std::chrono::high_resolution_clock::now();
-    GameBoard.Solve(0, 5, 2);
+    GameBoard.Solve(1, 5, 2);
     const auto EndTime = std::chrono::high_resolution_clock::now();
 
     const auto Duration = duration_cast<std::chrono::microseconds>(EndTime - StartTime);
